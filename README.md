@@ -50,4 +50,4 @@ select .pdf file
 
 finish proccesse
 
-![App Screenshot welcome](https://github.com/rustamovilyos/pdf2docx/blob/main/screen_3.png?raw=true)
+![App Screenshot welcome](https://github.com/rustamovilyos/pdf2docx/blob/main/screen_3_new.png?raw=true)
