@@ -9,25 +9,25 @@ from typing import Tuple
 from tkinter import messagebox as mbox
 
 from pdf2docx import parse
+from tqdm import tqdm
 
 
 class Interface(Frame):
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, master=None):
+        super().__init__(master)
+        self.master = master
         self.upload()
 
     def upload(self):
         btn_open = ttk.Button(text="Выбрать файл", command=self.open_file)
-
         btn_open.pack(expand=True, padx=15, pady=15)
 
-    def show_conversion_animation(self):
-        self.label_animation = Label(self, text="идет...")
-        self.label_animation.pack(expand=True, padx=20, pady=5, fill=BOTH)
+        self.progress = ttk.Progressbar(self.master, orient="horizontal", length=200, mode="determinate")
+        self.progress.pack(pady=10)
 
-    def stop_conversion_animation(self):
-        self.label_animation.pack_forget()
+        self.text_output = Text(self.master, wrap=WORD, state=DISABLED)
+        self.text_output.pack(expand=True, fill=BOTH, padx=10, pady=10)
 
     def get_num_pages(self, input_file: str) -> int:
         """Get number of pages in the PDF"""
@@ -38,11 +38,9 @@ class Interface(Frame):
     def convert_pdf2docx(self, input_file: str, output_file: str, pages: Tuple = None):
         """Converts pdf to docx"""
         try:
-            self.show_conversion_animation()
-            # if self.show_conversion_animation():
-            #     self.stop_conversion_animation()
-            # else:
-            #     self.show_conversion_animation()
+            num_pages = self.get_num_pages(input_file)
+            self.progress["maximum"] = num_pages
+            self.progress["value"] = 0
             # Redirecting print to a StringIO object
             output_buffer = io.StringIO()
             sys.stdout = output_buffer
@@ -53,10 +51,10 @@ class Interface(Frame):
                            docx_with_path=output_file, pages=pages)
             try:
                 summary = {
-                    "Файл": input_file, "Страницы": self.get_num_pages(input_file), "Выходной файл": output_file
+                    "Файл": input_file, "Страницы": num_pages, "Выходной файл": output_file
                 }
             except FileNotFoundError:
-                self.onError_FileNotFoundError()
+                self.on_error_file_not_found_error()
 
             # Restoring sys.stdout
             try:
@@ -73,23 +71,33 @@ class Interface(Frame):
                 # Close the StringIO object
                 output_buffer.close()
 
-                return self.onInfo()
+                # Perform the actual conversion
+                with tqdm(total=num_pages, desc="Конвертация", unit="стр.", leave=False) as pbar:
+                    for i in range(num_pages):
+                        # Simulate some processing time for each page (you can replace this with actual conversion code)
+                        import time
+                        time.sleep(0.1)
+                        pbar.update(1)  # Update the progress bar
+                        self.progress["value"] = i + 1
+                        self.progress.update()
+
+                return self.on_info()
             except UnboundLocalError:
-                self.onError_UnboundLocalError()
+                self.on_error_unbound_local_error()
 
         except KeyboardInterrupt:
-            return self.onError()
+            return self.on_error()
 
-    def onError(self):
+    def on_error(self):
         mbox.showerror("Ошибка!!!", "Не могу открыть файл!")
 
-    def onError_FileNotFoundError(self):
+    def on_error_file_not_found_error(self):
         mbox.showerror("Ошибка!!!", "Файл не выбран!")
 
-    def onError_UnboundLocalError(self):
+    def on_error_unbound_local_error(self):
         mbox.showwarning("Внемание!", "Пожалуйста выбирайте .pdf файл!")
 
-    def onInfo(self):
+    def on_info(self):
         mbox.showinfo("Информация", "Конвертация завершено!")
 
     def open_file(self):
@@ -97,20 +105,16 @@ class Interface(Frame):
         filepath = askopenfilename(
             filetypes=[("Text Files", "*.pdf"), ("All files", "*")]
         )
-        t = threading.Thread(target=self.convert_pdf2docx, args=(filepath, f'{filepath}.docx'))
-        t.start()
+        if filepath:
+            t = threading.Thread(target=self.convert_pdf2docx, args=(filepath, f'{filepath}.docx'))
+            t.start()
 
 
 def main():
     window = Tk()
-    user = Interface()
-    window.title("Добро пожаловать в приложение")
+    user = Interface(master=window)
+    window.title("Конвертер PDF на WORD")
     window.geometry('680x330+350+100')
-
-
-    # Create a Text widget for text output
-    user.text_output = Text(window, wrap=WORD)
-    user.text_output.pack(expand=True, padx=20, pady=15, fill=BOTH)
 
     window.mainloop()
 
